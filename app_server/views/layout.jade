@@ -3,10 +3,30 @@ html
 	head
 		meta(name='viewport', content='width=device-width, initial-scale=1.0')
 		title= title
-		link(href='//stackpath.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css', rel='stylesheet')
-		link(href='//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.min.css', rel='stylesheet')
+		link(href='//netdna.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css', rel='stylesheet')
+		link(href='/bootstrap/css/amelia.bootstrap.css' rel='stylesheet')
 		link(rel='stylesheet', href='/stylesheets/style.css')
 		body
-			block content
-			script(src="//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js")
+			.navbar.navbar-default.navbar-fixed-top
+				.container
+					.navbar-header
+						a.navbar-brand(href='/') Loc8r
+						button.navbar-toggle(type='button', data-toggle='collapse', data-target='#navbar-main')
+							span.icon-bar
+							span.icon-bar
+							span.icon-bar
+					#navbar-main.navbar-collapse.collapse
+						ul.nav.navbar-nav
+							li
+								a(href='/about/') About
+			.container
+				block content
+				footer
+					.row
+						.col-xs-12
+							small &copy; Simon Holmes 2014
+
+			script(src='//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js')
+			script(src='//stackpath.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js')
+
 
