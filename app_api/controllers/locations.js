@@ -98,6 +98,9 @@ module.exports.locationsListByDistance = async function (req, res) {
 };
 
 module.exports.locationsReadOne = async function (req, res) { 
+	if (!req.params.locationid) {
+		return sendJsonResponse(res, 404, {"message": "Not found, locationid is required"});
+	}
 	try{
 		var location = await Loc.findById(req.params.locationid).exec();
 		if (!location) sendJsonResponse(res, 404, {"message": "locationid not found"});
@@ -146,6 +149,10 @@ module.exports.locationsDeleteOne = async function (req, res) {
 		return sendJsonResponse(res, 404, {"message": "No locationid"});
 	}
 	try{
+		var location = await Loc.findById(locationid).exec();
+		if(!location){
+			return sendJsonResponse(res, 404, {"message": "locationid not found"});
+		}
 		await Loc.findByIdAndRemove(locationid).exec();
 		sendJsonResponse(res, 204, null);
 	}catch(error){

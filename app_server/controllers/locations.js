@@ -1,39 +1,35 @@
+var request = require('request-promise');
 
+var apiOptions = {
+	server : "http://localhost:3000"
+};
+if (process.env.NODE_ENV === 'production') {
+	apiOptions.server = "https://getting-mean-loc8r.herokuapp.com";
+}
 
 /* GET 'home' page */
-module.exports.homelist = function(req, res){
-  res.render('locations-list', { 
-	  								title: 'Loc8r - find a place to work with wifi', 
-	  								pageHeader: {  
-										title: 'Loc8r',
-										strapline: 'Find places to work with wifi near you!'
-	  								},
-	  								sidebar: 	"Looking for wifi and a seat? Loc8r helps you find places to work "+
-												"when out and about. Perhaps with coffee, cake or a pint? "+
-												"Let Loc8r help you find the place you're looking for.",
-								    locations: [
-									    {
-											name: 'Starcups',
-											address: '15835 SW 68th Ter, Miami, FL 33193',
-											rating: 3,
-											facilities: ['Hot drinks', 'Food', 'Premium wifi'],
-											distance: '100m'
-									    },{
-											name: 'Cafe Hero',
-											address: '125 High Street, Reading, RG6 1PS',
-											rating: 4,
-											facilities: ['Hot drinks', 'Food', 'Premium wifi'],
-											distance: '200m'
-									    },{
-											name: 'Burger Queen',
-											address: '125 High Street, Reading, RG6 1PS',
-											rating: 2,
-											facilities: ['Food', 'Average wifi', 'Kids friendly'],
-											distance: '250m'
-										}
-									]
-								}
-			);
+module.exports.homelist = async function(req, res){
+	var requestOptions, path;
+	path = '/api/locations';
+	requestOptions = {
+		uri : apiOptions.server + path,
+		method : "GET",
+		json : true,
+		qs : {
+			lng : -80.34481870000002,
+			lat : 25.7677338,
+			maxDistance : 20
+		}
+	};
+	try{
+		var result = await request(requestOptions);
+		console.log(result);
+	}
+	catch(error) {
+		console.log(error);
+	}
+	renderHomepage(req, res);
+
 };
 
 
@@ -91,4 +87,15 @@ module.exports.addReview = function(req, res){
         								pageHeader: { title: 'Review Starcups' } 
         							}
 			);
+};
+
+
+var renderHomepage = function(req, res){
+	res.render('locations-list', {
+		title: 'Loc8r - find a place to work with wifi',
+		pageHeader:{
+			title:'Loc8r'
+		},
+		locations:[]
+	});
 };

@@ -13,6 +13,9 @@ module.exports.reviewsCreate = async function (req, res) {
 	}else{
 		try{
 			var location = await Loc.findById(locationid).select('rating reviews').exec();
+			if(!location){
+				return sendJsonResponse(res, 404, {"message": "locationid not found"});
+			}
 			location.reviews.push({
 				author: req.body.author,
 				rating: req.body.rating,
@@ -34,6 +37,9 @@ module.exports.reviewsCreate = async function (req, res) {
 };
 
 module.exports.reviewsReadOne = async function (req, res) { 
+	if (!req.params.locationid || !req.params.reviewid) {
+		return sendJsonResponse(res, 404, {"message": "Not found, locationid and reviewid are both required"});
+	}
 	try{
 		var location = await Loc.findById(req.params.locationid).select('name reviews').exec();
 		if(!location) sendJsonResponse(res, 404, {"message": "locationid not found"});
@@ -51,10 +57,10 @@ module.exports.reviewsReadOne = async function (req, res) {
 };
 
 module.exports.reviewsUpdateOne = async function (req, res) { 
-	if (!req.params.locationid || !req.params.reviewid) {
+	
+	try{if (!req.params.locationid || !req.params.reviewid) {
 		return sendJsonResponse(res, 404, {"message": "Not found, locationid and reviewid are both required"});
 	}
-	try{
 		var location = await Loc.findById(req.params.locationid).select('rating reviews').exec();
 		if (!location) {
 			return sendJsonResponse(res, 404, {"message": "locationid not found"});
@@ -101,17 +107,18 @@ module.exports.reviewsDeleteOne = async function (req, res) {
 			if(!reviewToDelete){
 				return sendJsonResponse(res, 404, {"message": "reviewid not found"});
 			}
-			if(location.reviews.length === 1){
+
+			location.reviews.id(req.params.reviewid).remove();
+			console.log(location.reviews);
+			if(location.reviews.length === 0){
 				location.rating = 0;
 			}else{
 				var totalRatings = 0;
 			    for(review of location.reviews){
 			    	totalRatings += review.rating;
 			    }
-			    totalRatings = totalRatings - reviewToDelete.rating;
-			    location.rating = totalRatings / location.reviews.length - 1;
+			    location.rating = totalRatings / location.reviews.length;
 			}
-			await location.reviews.id(req.params.reviewid).remove();
 			await location.save();
 			sendJsonResponse(res, 204, null);
 
