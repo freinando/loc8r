@@ -12,90 +12,175 @@ module.exports.homelist = async function(req, res){
 	var requestOptions, path;
 	path = '/api/locations';
 	requestOptions = {
-		uri : apiOptions.server + path,
+		url : apiOptions.server + path,
 		method : "GET",
-		json : true,
+		json : {},
+		resolveWithFullResponse: true,
 		qs : {
 			lng : -80.34481870000002,
 			lat : 25.7677338,
-			maxDistance : 20
+			maxDistance : 15
 		}
 	};
 	try{
-		var result = await request(requestOptions);
-		console.log(result);
+		var response = await request(requestOptions);
+		renderHomepage(req, res, response.body, response.statusCode);
 	}
 	catch(error) {
-		console.log(error);
+		renderHomepage(req, res, error.body, error.statusCode);
 	}
-	renderHomepage(req, res);
 
 };
 
 
 /* GET 'Location info' page */
 module.exports.locationInfo = function(req, res){
-  res.render('location-info', { 
-    							title: 'Starcups',
-    							pageHeader: {title: 'Starcups'},
-    							sidebar: {
-									context: 'is on Loc8r because it has accessible wifi and space to sit '+
-											 'down with your laptop and get some work done.',
-									callToAction: 'If you\'ve been and you like it - or if you don\'t -'+
-													' please leave a review to help other people just like you.'
-								},
-								location: {
-									name: 'Starcups',
-  									address: '125 High Street, Reading, RG6 1PS',
-  									rating: 3,
-  									facilities: ['Hot drinks', 'Food', 'Premium wifi'],
-  									coords: {lat: 51.455041, lng: -0.9690884},
-									openingTimes: [{
-										days: 'Monday - Friday',
-									  	opening: '7:00am',
-									  	closing: '7:00pm',
-									  	closed: false
-									},{
-									  	days: 'Saturday',
-									  	opening: '8:00am',
-									  	closing: '5:00pm',
-									  	closed: false
-									},{
-									  	days: 'Sunday',
-									  	closed: true
-									}],
-									reviews: [{
-										author: 'Simon Holmes',
-								        rating: 5,
-								        timestamp: '16 July 2013',
-								        reviewText: 'What a great place. I can\'t say enough good things about it.' 
-									},{
-								        author: 'Charlie Chaplin',
-								        rating: 3,
-								        timestamp: '16 June 2013',
-        								reviewText: 'It was okay. Coffee wasn\'t great, but the wifi was fast.' 
-        							}]
-        						}
-        					}
-			);
+	getLocationInfo(req, res, function(req, res, responseData) {
+		renderDetailPage(req, res, responseData);
+  	});
 };
 
 
 /* GET 'Add review' page */
 module.exports.addReview = function(req, res){
-  res.render('location-review-form', { title: 'Review Starcups on Loc8r',
-        								pageHeader: { title: 'Review Starcups' } 
-        							}
-			);
+	getLocationInfo(req, res, function(req, res, responseData) {
+		renderReviewForm(req, res, responseData);
+	});
 };
 
 
-var renderHomepage = function(req, res){
+module.exports.doAddReview = async function(req, res){
+	var requestOptions, path, locationid, postdata;
+	locationid = req.params.locationid;
+	path = "/api/locations/" + locationid + '/reviews';
+	postdata = {
+		author: req.body.name,
+		rating: parseInt(req.body.rating, 10),
+		reviewText: req.body.review
+	};
+
+	if (!postdata.author || !postdata.rating || !postdata.reviewText) {
+  		return res.redirect('/location/' + locationid + '/review/new?err=val');
+	}
+	requestOptions = {
+		url : apiOptions.server + path,
+		method : "POST",
+		json : postdata,
+		resolveWithFullResponse: true,
+	};
+	try{
+		var response = await request(requestOptions);
+		if (response.statusCode === 201) {
+        	res.redirect('/location/' + locationid);
+      	}else if (response.statusCode === 400 && response.body.name && response.body.name === "ValidationError" ) {
+			res.redirect('/location/' + locationid + '/review/new?err=val');
+		}
+      	else{
+      		_showError(req, res, response.statusCode);
+      	}
+	}
+	catch(error) {
+		if (error.statusCode === 400 && error.response.body.name && error.response.body.name === "ValidationError" ) {
+			res.redirect('/location/' + locationid + '/review/new?err=val');
+		}
+      	else{
+      		_showError(req, res, error.statusCode);
+      	}
+	}
+};
+
+
+
+var renderHomepage = function(req, res, responseBody, statusCode){
+	var message;
+	if (!(responseBody instanceof Array)) {
+  		message = "API lookup error. Status code "+statusCode;
+  		responseBody = [];
+	} else {
+  		if (!responseBody.length) {
+    		message = "No places found nearby";
+		} 
+	}
 	res.render('locations-list', {
 		title: 'Loc8r - find a place to work with wifi',
 		pageHeader:{
-			title:'Loc8r'
+			title:'Loc8r',
+			strapline: 'Find places to work with wifi near you!' 
 		},
-		locations:[]
+		sidebar: "Looking for wifi and a seat? Loc8r helps you find places to "+
+					"work when out and about. Perhaps with coffee, cake or a pint? "+
+					"Let Loc8r help you find the place you're looking for.",
+		locations: responseBody,
+		message: message
 	});
+};
+
+
+var renderDetailPage = function (req, res, locDetail) {
+	res.render('location-info', {
+				title: locDetail.name,
+				pageHeader: {title: locDetail.name},
+				sidebar: {
+					context: 'is on Loc8r because it has accessible wifi and space to sit '+
+						'down with your laptop and get some work done.',
+					callToAction: 'If you\'ve been and you like it - or if you don\'t - ' +
+						'please leave a review to help other people just like you.'
+				},
+				location: locDetail
+	});
+};
+
+
+var renderReviewForm = function (req, res, location) {
+	res.render('location-review-form', {
+		title: 'Review '+location.name+' on Loc8r',
+		pageHeader: { title: 'Review '+location.name },
+		error: req.query.err
+	});
+};
+
+
+//error page
+var _showError = function (req, res, status) {
+	var title, content;
+	if (status === 404) {
+		title = "404, page not found";
+		content = "Oh dear. Looks like we can't find this page. Sorry.";
+	} else {
+		title = status + ", something's gone wrong";
+		content = "Something, somewhere, has gone just a little bit wrong.";
+	}
+	res.status(status);
+	res.render('generic-text', {
+		title : title,
+		content : content
+	});
+};
+
+
+var getLocationInfo = async function (req, res, callback) {
+	var requestOptions, path;
+	path = "/api/locations/" + req.params.locationid;
+	requestOptions = {
+		url : apiOptions.server + path,
+		method : "GET",
+		json : {},
+		resolveWithFullResponse: true,
+	}; 
+
+	try{
+		var response = await request(requestOptions);
+		if(response.statusCode!==200){
+			return _showError(req, res, response.statusCode);
+		}
+		var data = response.body;
+		data.coords = {
+			lng : response.body.coords[0],
+			lat : response.body.coords[1]
+		};
+		callback(req, res, data);
+	}
+	catch(error) {
+		_showError(req, res, error.statusCode);
+	}
 };

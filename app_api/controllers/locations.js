@@ -49,9 +49,9 @@ module.exports.locationsCreate = async function (req, res) {
 
 module.exports.locationsListByDistance = async function (req, res) { 
 	var lng = parseFloat(req.query.lng);
-	if(!lng) return sendJsonResponse(res, 404, {"message" : "Longitude parameter missing"});
+	if(!lng && lng !==0) return sendJsonResponse(res, 404, {"message" : "Longitude parameter missing"});
   	var lat = parseFloat(req.query.lat);
-  	if(!lat) return sendJsonResponse(res, 404, {"message" : "Latitude parameter missing"});
+  	if(!lat && lat!==0) return sendJsonResponse(res, 404, {"message" : "Latitude parameter missing"});
 
   	var maxDistance = parseFloat(req.query.maxDistance) * 1000;
   	if(!maxDistance)maxDistance = 20000;
