@@ -17,16 +17,18 @@ module.exports.homelist = async function(req, res){
 		json : {},
 		resolveWithFullResponse: true,
 		qs : {
-			lng : -80.34481870000002,
-			lat : 25.7677338,
+			lng : -80.364093,
+			lat : 25.772653,
 			maxDistance : 15
 		}
 	};
 	try{
 		var response = await request(requestOptions);
+		//console.log(response);
 		renderHomepage(req, res, response.body, response.statusCode);
 	}
 	catch(error) {
+		//console.log(error);
 		renderHomepage(req, res, error.body, error.statusCode);
 	}
 
